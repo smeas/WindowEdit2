@@ -62,15 +62,20 @@ void App::Render()
 			}
 
 			ImGui::TableNextColumn();
-			ImGui::PushID(index + 1);
+			ImGui::PushID((i32)index + 1);
 
-			bool useFallbackTitle = window->GetTitle().size() == 0;
+			bool useFallbackTitle = window->GetTitle().empty();
 			const std::string& title = !useFallbackTitle ? window->GetTitle() : window->GetExecutableName();
 			if (useFallbackTitle)
 				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(127, 127, 127, 255));
 
+			// Here is a bit of a hack to get a stable id per index on the selectable in order to prevent flickering
+			// when hovering a window that changes its title text rapidly. For some reason the selectable adds a small
+			// padding to the column, so it should come *after* the text in order to avoid shifting the text.
+			ImGui::TextUnformatted(!title.empty() ? title.c_str() : "???");
+			ImGui::SameLine();
 			if (ImGui::Selectable(
-				title.size() > 0 ? title.c_str() : "???",
+				"##sel",
 				m_selectedIndex == index,
 				ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap,
 				ImVec2(0, 16)))
