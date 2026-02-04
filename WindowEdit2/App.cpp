@@ -20,7 +20,14 @@ struct Rect : RECT
 
 void App::Render()
 {
-	RefreshWindowList();
+	i32 keyCount;
+	const bool* keyboardState = SDL_GetKeyboardState(&keyCount);
+	bool isHoldingCtrl = SDL_SCANCODE_LCTRL < keyCount && keyboardState[SDL_SCANCODE_LCTRL];
+
+	if (!isHoldingCtrl)
+	{
+		RefreshWindowList();
+	}
 
 	ImGui::DockSpaceOverViewport(ImGui::GetID("fullscreenDockspace"), ImGui::GetMainViewport());
 
