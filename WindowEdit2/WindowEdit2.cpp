@@ -30,7 +30,7 @@ int SDL_main(int argc, char* argv[])
 	float mainScale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
 	SDL_WindowFlags windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN |
 		SDL_WINDOW_HIGH_PIXEL_DENSITY;
-	SDL_Window* window = SDL_CreateWindow("WindowEdit 2.0", (i32)(800 * mainScale), (i32)(600 * mainScale),
+	SDL_Window* window = SDL_CreateWindow("WindowEdit 2.0", (i32)(800 * mainScale), (i32)(500 * mainScale),
 	                                      windowFlags);
 	if (window == NULL)
 	{
@@ -92,7 +92,9 @@ int SDL_main(int argc, char* argv[])
 	//IM_ASSERT(font != nullptr);
 
 	App app;
-	app.Init(renderer);
+	HWND appHwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
+	SK_VERIFY(appHwnd);
+	app.Init(appHwnd, window, renderer);
 
 	ImVec4 clearColor = {0, 0, 0, 1};
 
@@ -152,6 +154,8 @@ int SDL_main(int argc, char* argv[])
 		ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
 		SDL_RenderPresent(renderer);
 	}
+
+	app.Shutdown();
 
 	ImGui_ImplSDLRenderer3_Shutdown();
 	ImGui_ImplSDL3_Shutdown();

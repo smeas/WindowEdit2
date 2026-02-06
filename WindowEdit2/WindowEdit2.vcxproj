@@ -175,6 +175,7 @@
   <ItemGroup>
     <ClCompile Include="App.cpp" />
     <ClCompile Include="IconCache.cpp" />
+    <ClCompile Include="SettingsManager.cpp" />
     <ClCompile Include="sk\core.cpp" />
     <ClCompile Include="sk\strings.cpp" />
     <ClCompile Include="WindowEdit2.cpp" />
@@ -182,13 +183,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />
+    <ClInclude Include="common.h" />
     <ClInclude Include="IconCache.h" />
+    <ClInclude Include="SettingsManager.h" />
     <ClInclude Include="sk\core.h" />
     <ClInclude Include="sk\defer.hpp" />
     <ClInclude Include="sk\math.h" />
     <ClInclude Include="sk\sk.h" />
     <ClInclude Include="sk\strings.h" />
     <ClInclude Include="sk\win.h" />
+    <ClInclude Include="vendor\json.hpp" />
     <ClInclude Include="WindowModel.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
