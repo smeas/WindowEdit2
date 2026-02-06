@@ -118,7 +118,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalOptions></AdditionalOptions>
+      <AdditionalOptions>
+      </AdditionalOptions>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>D:\Programs\vcpkg\installed\x64-windows\lib</AdditionalLibraryDirectories>
     </Link>
@@ -185,6 +186,7 @@
     <ClInclude Include="App.h" />
     <ClInclude Include="common.h" />
     <ClInclude Include="IconCache.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="SettingsManager.h" />
     <ClInclude Include="sk\core.h" />
     <ClInclude Include="sk\defer.hpp" />
@@ -194,6 +196,12 @@
     <ClInclude Include="sk\win.h" />
     <ClInclude Include="vendor\json.hpp" />
     <ClInclude Include="WindowModel.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="WindowEdit2.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="we2_icon.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
