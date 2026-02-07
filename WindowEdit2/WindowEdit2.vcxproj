@@ -113,7 +113,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>include;..\vendor;..\vendor\imgui;D:\Programs\vcpkg\installed\x64-windows-static\include;D:\Programs\vcpkg\installed\x64-windows\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>include;..\vendor;..\vendor\imgui;$(VCPKG_ROOT)\installed\x64-windows-static-md\include;$(VCPKG_ROOT)\installed\x64-windows\include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -122,11 +122,11 @@
       <AdditionalOptions>
       </AdditionalOptions>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalLibraryDirectories>D:\Programs\vcpkg\installed\x64-windows-static\lib;D:\Programs\vcpkg\installed\x64-windows\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(VCPKG_ROOT)\installed\x64-windows-static-md\lib;$(VCPKG_ROOT)\installed\x64-windows\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);freetype.lib;libpng16.lib;zlib.lib;bz2.lib;brotlidec.lib;brotlicommon.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy /Y "D:\Programs\vcpkg\installed\x64-windows\bin\SDL3.dll" "$(OutDir)\SDL3.dll"</Command>
+      <Command>copy /Y "$(VCPKG_ROOT)\installed\x64-windows\bin\SDL3.dll" "$(OutDir)\SDL3.dll"</Command>
       <Message>Copying SDL3.dll</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -161,7 +161,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>include;..\vendor;..\vendor\imgui;D:\Programs\vcpkg\installed\x64-windows-static\include;D:\Programs\vcpkg\installed\x64-windows\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>include;..\vendor;..\vendor\imgui;$(VCPKG_ROOT)\installed\x64-windows-static-md\include;$(VCPKG_ROOT)\installed\x64-windows\include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -169,12 +169,12 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\Programs\vcpkg\installed\x64-windows-static\lib;D:\Programs\vcpkg\installed\x64-windows\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(VCPKG_ROOT)\installed\x64-windows-static-md\lib;$(VCPKG_ROOT)\installed\x64-windows\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);freetype.lib;libpng16.lib;zlib.lib;bz2.lib;brotlidec.lib;brotlicommon.lib</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
-      <Command>copy /Y "D:\Programs\vcpkg\installed\x64-windows\bin\SDL3.dll" "$(OutDir)\SDL3.dll"</Command>
+      <Command>copy /Y "$(VCPKG_ROOT)\installed\x64-windows\bin\SDL3.dll" "$(OutDir)\SDL3.dll"</Command>
       <Message>Copying SDL3.dll</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -188,6 +188,7 @@
     <ClCompile Include="..\vendor\imgui\imgui_widgets.cpp" />
     <ClCompile Include="..\vendor\imgui\misc\freetype\imgui_freetype.cpp" />
     <ClCompile Include="App.cpp" />
+    <ClCompile Include="common.cpp" />
     <ClCompile Include="IconCache.cpp" />
     <ClCompile Include="SettingsManager.cpp" />
     <ClCompile Include="sk\core.cpp" />
