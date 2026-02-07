@@ -12,6 +12,11 @@ struct IntVec2
 
 struct Rect : RECT
 {
+	Rect() = default;
+	Rect(RECT other) : RECT(other) {}
+	Rect(i32 x, i32 y, i32 w, i32 h) : RECT{x, y, x + w, y + h} {}
+	Rect(IntVec2 position, IntVec2 size) : RECT{position.x,position.y, position.x + size.x, position.y + size.y} {}
+
 	i32 X() const { return left; }
 	i32 Y() const { return top; }
 	i32 Width() const { return right - left; }

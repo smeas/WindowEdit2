@@ -174,7 +174,7 @@ void App::MakeWindowBorderlessFullscreen(HWND hwnd)
 
 void App::ActivateWindow(HWND hwnd)
 {
-	if (IsIconic(hwnd))
+	if (IsIconic(hwnd)) // is minimized?
 	{
 		ShowWindow(hwnd, SW_RESTORE);
 	}
@@ -182,6 +182,32 @@ void App::ActivateWindow(HWND hwnd)
 	SetForegroundWindow(hwnd);
 
 	SetFocus(hwnd);
+}
+
+void App::MoveWindowToCenterOfPrimaryMonitor(HWND hwnd, bool activate)
+{
+	//HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+	// Get primary monitor
+	HMONITOR monitor = MonitorFromPoint({0, 0}, MONITOR_DEFAULTTOPRIMARY);
+	MONITORINFO monitorInfo{};
+	monitorInfo.cbSize = sizeof(MONITORINFO);
+
+	if (!GetMonitorInfo(monitor, &monitorInfo))
+		return;
+
+	Rect monitorRect = monitorInfo.rcMonitor;
+	Rect windowRect;
+	if (!GetWindowRect(hwnd, &windowRect))
+		return;
+
+	i32 px = monitorRect.X() + monitorRect.Width() / 2 - windowRect.Width() / 2;
+	i32 py = monitorRect.Y() + monitorRect.Height() / 2 - windowRect.Height() / 2;
+
+	u32 flags = SWP_NOSIZE;
+	if (!activate)
+		flags |= SWP_NOACTIVATE;
+
+	SetWindowPos(hwnd, NULL, px, py, 0, 0, flags);
 }
 
 bool App::IsValidProfileName(std::string_view name) const
@@ -389,6 +415,16 @@ void App::DoInspectorWindow()
 	// ACTION BUTTONS
 	//
 	ImGui::SeparatorText("Actions");
+
+	if (ImGui::Button("Bring to Center"))
+	{
+		if (IsIconic(hwnd))
+		{
+			ShowWindow(hwnd, SW_RESTORE);
+		}
+
+		MoveWindowToCenterOfPrimaryMonitor(hwnd, true);
+	}
 
 	if (ImGui::Button("Make Borderless Fullscreen"))
 		MakeWindowBorderlessFullscreen(hwnd);

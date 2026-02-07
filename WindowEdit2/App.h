@@ -43,6 +43,7 @@ private:
 	static void MoveWindowTopLeft(HWND hwnd);
 	static void MakeWindowBorderlessFullscreen(HWND hwnd);
 	static void ActivateWindow(HWND hwnd);
+	static void MoveWindowToCenterOfPrimaryMonitor(HWND hwnd, bool activate);
 
 	bool IsValidProfileName(std::string_view name) const;
 
