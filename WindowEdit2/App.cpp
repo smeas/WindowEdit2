@@ -269,9 +269,25 @@ void App::DoWindowListWindow()
 				m_selectedIndex = index;
 			}
 
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetItemTooltip("%s", window->GetExecutablePathName().c_str());
+			}
+
 			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
 			{
 				ActivateWindow(window->GetHandle());
+			}
+
+			// CONTEXT MENU
+			if (ImGui::BeginPopupContextItem())
+			{
+				if (ImGui::MenuItem("Open Executable Path"))
+				{
+					ShellOpenFolderAndSelectFile(window->GetExecutablePathNameW().c_str());
+				}
+
+				ImGui::EndPopup();
 			}
 
 			if (useFallbackTitle)

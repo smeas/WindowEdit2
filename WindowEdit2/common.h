@@ -19,3 +19,5 @@ struct Rect : RECT
 	IntVec2 GetPos() const { return {X(), Y()}; }
 	IntVec2 GetSize() const { return {Width(), Height()}; }
 };
+
+bool ShellOpenFolderAndSelectFile(const wchar_t* filePath);

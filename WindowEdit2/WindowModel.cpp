@@ -36,9 +36,10 @@ void WindowModel::FetchMetadata(IconCache& iconCache)
 
 
 	{
-		size_t splitIndex = m_processFileName.find_last_of(L"\\/");
+		m_executablePathName = sk::ConvertWStringToUtf8(m_processFileName.c_str());
+		size_t splitIndex = m_executablePathName.find_last_of("\\/");
 		size_t offset = splitIndex != std::wstring::npos ? splitIndex + 1 : 0;
-		m_executableName = sk::ConvertWStringToUtf8(&m_processFileName.c_str()[offset]);
+		m_executableName = m_executablePathName.substr(offset);
 	}
 
 
