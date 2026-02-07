@@ -1,5 +1,6 @@
 #include "App.h"
 #include "common.h"
+//#include "imgui_internal.h"
 
 void App::Init(HWND ownWindowHandle, SDL_Window* window, SDL_Renderer* renderer)
 {
@@ -36,6 +37,10 @@ void App::Render()
 	DoWindowListWindow();
 	DoInspectorWindow();
 	DoProfilesWindow();
+
+	// ImGui::Begin("Font Debug");
+	// ImGui::ShowFontAtlas(ImGui::GetFont()->OwnerAtlas);
+	// ImGui::End();
 }
 
 void App::RefreshWindowList()
@@ -258,7 +263,7 @@ void App::DoWindowListWindow()
 			if (ImGui::Selectable(
 				"##sel",
 				m_selectedIndex == index,
-				ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap,
+				ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap,
 				ImVec2(0, 16)))
 			{
 				m_selectedIndex = index;

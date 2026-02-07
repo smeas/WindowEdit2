@@ -4,20 +4,66 @@
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
-#include <imgui.h>
-#include <imgui_impl_sdl3.h>
-#include <imgui_impl_sdlrenderer3.h>
+#include "imgui.h"
+#include "backends/imgui_impl_sdl3.h"
+#include "backends/imgui_impl_sdlrenderer3.h"
 #include "sk/sk.h"
 #include "App.h"
 
 #pragma comment(lib, "SDL3.lib")
-#pragma comment(lib, "imgui.lib")
 
 // TODO: We could go slower if we decouple window message processing from this delay.
 #define THROTTLE_WHILE_INACTIVE_MS 100
 #if _DEBUG
 #define DEBUG_SHOW_FPS 1
 #endif
+
+// Embedded font
+#include "unifont_compressed.h"
+// For decompressing the embedded font
+#include <zlib.h>
+
+// Decompresses a deflate blob and returns new memory. You are responsible for calling delete[]!
+SK_INTERNAL char* ZlibDecompress(const unsigned char* compressedData, u32 compressedSize, u32 uncompressedSize)
+{
+	SK_VERIFY(compressedData != nullptr);
+	SK_VERIFY(uncompressedSize >= compressedSize);
+
+	char* uncompressedData = new char[uncompressedSize];
+
+	z_stream stream{};
+	stream.next_in = (Bytef*)compressedData;
+	stream.avail_in = compressedSize;
+	stream.next_out = (Bytef*)uncompressedData;
+	stream.avail_out = uncompressedSize;
+
+	if (inflateInit(&stream) != Z_OK)
+	{
+		delete[] uncompressedData;
+		return nullptr;
+	}
+
+	int ret = inflate(&stream, Z_FINISH);
+	inflateEnd(&stream);
+
+	// if (ret != Z_STREAM_END)
+	// {
+	// 	delete[] uncompressedData;
+	// 	return nullptr;
+	// }
+
+	SK_VERIFY(ret == Z_STREAM_END);
+	SK_VERIFY(stream.total_out == uncompressedSize);
+
+	return uncompressedData;
+}
+
+SK_INTERNAL char* LoadEmbeddedFont(u32* outFontDataSize)
+{
+	char* data = ZlibDecompress((const unsigned char*)g_unifontTTF_compressed_data, g_unifontTTF_compressed_size, g_unifontTTF_uncompressed_size);
+	*outFontDataSize = data ? g_unifontTTF_uncompressed_size : 0;
+	return data;
+}
 
 int SDL_main(int argc, char* argv[])
 {
@@ -47,7 +93,6 @@ int SDL_main(int argc, char* argv[])
 
 	SDL_SetRenderVSync(renderer, 1);
 	SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-	SDL_ShowWindow(window);
 
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
@@ -64,9 +109,9 @@ int SDL_main(int argc, char* argv[])
 	// Setup scaling
 	// TODO: ...
 	// Bake a fixed style scale. (until we have a solution for dynamic style scaling, changing this requires resetting Style + calling this again)
-	//ImGuiStyle& style = ImGui::GetStyle();
-	//style.ScaleAllSizes(mainScale);
-	//style.FontScaleDpi = mainScale;        // Set initial font scale. (in docking branch: using io.ConfigDpiScaleFonts=true automatically overrides this for every window depending on the current monitor)
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.ScaleAllSizes(mainScale);
+	style.FontScaleDpi = mainScale;        // Set initial font scale. (in docking branch: using io.ConfigDpiScaleFonts=true automatically overrides this for every window depending on the current monitor)
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
@@ -90,6 +135,19 @@ int SDL_main(int argc, char* argv[])
 	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf");
 	//ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf");
 	//IM_ASSERT(font != nullptr);
+
+	// ImFont* font = io.Fonts->AddFontFromFileTTF("unifont-16.0.04.ttf");
+	//ImFont* font = io.Fonts->AddFontFromMemoryCompressedTTF(g_unifontTTF_compressed_data, g_unifontTTF_compressed_size);
+
+	u32 fontDataSize;
+	char* fontData = LoadEmbeddedFont(&fontDataSize);
+	ImFont* font = io.Fonts->AddFontFromMemoryTTF(fontData, (i32)fontDataSize);
+	ImGui::PushFont(font, 13);
+
+
+	// Show window after font loading, as that takes a few ms.
+	SDL_ShowWindow(window);
+
 
 	App app;
 	HWND appHwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);

@@ -1,7 +1,6 @@
 #include "SettingsManager.h"
 #include <fstream>
-
-#include "vendor/json.hpp"
+#include <json.hpp>
 
 void to_json(nlohmann::json& json, const GlobalProfile& profile)
 {

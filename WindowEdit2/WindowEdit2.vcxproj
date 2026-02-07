@@ -109,11 +109,12 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);IMGUI_USER_CONFIG="app_imconfig.h"</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>D:\Programs\vcpkg\installed\x64-windows\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>include;..\vendor;..\vendor\imgui;D:\Programs\vcpkg\installed\x64-windows-static\include;D:\Programs\vcpkg\installed\x64-windows\include</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -121,7 +122,8 @@
       <AdditionalOptions>
       </AdditionalOptions>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalLibraryDirectories>D:\Programs\vcpkg\installed\x64-windows\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\Programs\vcpkg\installed\x64-windows-static\lib;D:\Programs\vcpkg\installed\x64-windows\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);freetype.lib;libpng16.lib;zlib.lib;bz2.lib;brotlidec.lib;brotlicommon.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "D:\Programs\vcpkg\installed\x64-windows\bin\SDL3.dll" "$(OutDir)\SDL3.dll"</Command>
@@ -155,18 +157,21 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);IMGUI_USER_CONFIG="app_imconfig.h"</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>D:\Programs\vcpkg\installed\x64-windows\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>include;..\vendor;..\vendor\imgui;D:\Programs\vcpkg\installed\x64-windows-static\include;D:\Programs\vcpkg\installed\x64-windows\include</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\Programs\vcpkg\installed\x64-windows\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\Programs\vcpkg\installed\x64-windows-static\lib;D:\Programs\vcpkg\installed\x64-windows\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);freetype.lib;libpng16.lib;zlib.lib;bz2.lib;brotlidec.lib;brotlicommon.lib</AdditionalDependencies>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "D:\Programs\vcpkg\installed\x64-windows\bin\SDL3.dll" "$(OutDir)\SDL3.dll"</Command>
@@ -174,6 +179,14 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\vendor\imgui\backends\imgui_impl_sdl3.cpp" />
+    <ClCompile Include="..\vendor\imgui\backends\imgui_impl_sdlrenderer3.cpp" />
+    <ClCompile Include="..\vendor\imgui\imgui.cpp" />
+    <ClCompile Include="..\vendor\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\vendor\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\vendor\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\vendor\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\vendor\imgui\misc\freetype\imgui_freetype.cpp" />
     <ClCompile Include="App.cpp" />
     <ClCompile Include="IconCache.cpp" />
     <ClCompile Include="SettingsManager.cpp" />
@@ -183,9 +196,19 @@
     <ClCompile Include="WindowModel.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\vendor\imgui\backends\imgui_impl_sdl3.h" />
+    <ClInclude Include="..\vendor\imgui\backends\imgui_impl_sdlrenderer3.h" />
+    <ClInclude Include="..\vendor\imgui\imconfig.h" />
+    <ClInclude Include="..\vendor\imgui\imgui.h" />
+    <ClInclude Include="..\vendor\imgui\imgui_internal.h" />
+    <ClInclude Include="..\vendor\imgui\imstb_rectpack.h" />
+    <ClInclude Include="..\vendor\imgui\imstb_textedit.h" />
+    <ClInclude Include="..\vendor\imgui\imstb_truetype.h" />
+    <ClInclude Include="..\vendor\imgui\misc\freetype\imgui_freetype.h" />
     <ClInclude Include="App.h" />
     <ClInclude Include="common.h" />
     <ClInclude Include="IconCache.h" />
+    <ClInclude Include="include\app_imconfig.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="SettingsManager.h" />
     <ClInclude Include="sk\core.h" />
@@ -194,7 +217,6 @@
     <ClInclude Include="sk\sk.h" />
     <ClInclude Include="sk\strings.h" />
     <ClInclude Include="sk\win.h" />
-    <ClInclude Include="vendor\json.hpp" />
     <ClInclude Include="WindowModel.h" />
   </ItemGroup>
   <ItemGroup>
@@ -202,6 +224,9 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="we2_icon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="compress_font.py" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
