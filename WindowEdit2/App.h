@@ -1,26 +1,21 @@
 #pragma once
 
 #include "sk/sk.h"
-#include "sk/strings.h"
 #include <Windows.h>
-#include "imgui.h"
-#include <memory>
-#include <vector>
 #include <SDL3/SDL_render.h>
 
 #include "IconCache.h"
+#include "ProcessHandle.h"
 #include "SettingsManager.h"
-#include "WindowModel.h"
+#include "WindowList.h"
 
 class App
 {
 	HWND m_appWindowHandle = nullptr;
 	SDL_Window* m_appWindow = nullptr;
 	SDL_Renderer* m_renderer = nullptr;
-	std::vector<std::unique_ptr<WindowModel>> m_windows;
 	IconCache m_iconCache;
 	SettingsManager m_settingsManager;
-	u32 m_selectedIndex = 0;
 
 	i32 m_posEditBuffer[2]{};
 	i32 m_sizeEditBuffer[2]{};
@@ -28,17 +23,21 @@ class App
 	char m_profileSaveNameEditBuffer[256]{};
 	GlobalProfile m_profileToSave{};
 
+	ProcessHandle m_test;
+	ProcessHandle m_test2;
+
+	WindowList m_windowList;
+
 public:
 	void Init(HWND ownWindowHandle, SDL_Window* window, SDL_Renderer* renderer);
 	void Shutdown();
 
-	void Render();
-	void RefreshWindowList();
+	HWND GetAppWindowHandle() const { return m_appWindowHandle; }
+	IconCache& GetIconCache() { return m_iconCache; }
 
+	void Render();
 
 private:
-	static BOOL CALLBACK RefreshCallback(HWND hWnd, LPARAM lParam);
-
 	static void RemoveWindowBorder(HWND hwnd);
 	static void MoveWindowTopLeft(HWND hwnd);
 	static void MakeWindowBorderlessFullscreen(HWND hwnd);

@@ -1,6 +1,9 @@
 #include "App.h"
+#include <memory>
+#include <imgui.h>
+
 #include "common.h"
-//#include "imgui_internal.h"
+#include "WindowModel.h"
 
 void App::Init(HWND ownWindowHandle, SDL_Window* window, SDL_Renderer* renderer)
 {
@@ -12,6 +15,8 @@ void App::Init(HWND ownWindowHandle, SDL_Window* window, SDL_Renderer* renderer)
 	m_settingsManager.Init();
 	m_settingsManager.Load();
 	SDL_SetWindowSize(window, m_settingsManager.m_windowSize.x, m_settingsManager.m_windowSize.y);
+
+	m_windowList.Init(*this);
 }
 
 void App::Shutdown()
@@ -29,7 +34,7 @@ void App::Render()
 
 	if (!isHoldingCtrl)
 	{
-		RefreshWindowList();
+		m_windowList.Refresh(m_settingsManager.m_showAllWindows);
 	}
 
 	ImGui::DockSpaceOverViewport(ImGui::GetID("fullscreenDockspace"), ImGui::GetMainViewport());
@@ -42,52 +47,6 @@ void App::Render()
 	// ImGui::ShowFontAtlas(ImGui::GetFont()->OwnerAtlas);
 	// ImGui::End();
 }
-
-void App::RefreshWindowList()
-{
-	HWND oldSelection = m_selectedIndex < m_windows.size() ? m_windows[m_selectedIndex]->GetHandle() : NULL;
-
-	m_windows.clear();
-	EnumWindows(RefreshCallback, (LPARAM)(void*)this);
-
-	// Restore the selection since the list might have been reordered.
-	if (oldSelection != NULL)
-	{
-		for (u32 i = 0; i < m_windows.size(); ++i)
-		{
-			if (m_windows[i]->GetHandle() == oldSelection)
-				m_selectedIndex = i;
-		}
-	}
-}
-
-BOOL CALLBACK App::RefreshCallback(HWND hWnd, LPARAM lParam)
-{
-	if (hWnd == nullptr || !IsWindow(hWnd) || !IsWindowVisible(hWnd))
-		return true;
-
-	App* app = (App*)(void*)lParam;
-
-	auto window = std::make_unique<WindowModel>(hWnd);
-	// TODO: We don't need to fetch all metadata to determine not to show the window, this is unnecessary.
-	window->FetchMetadata(app->m_iconCache);
-
-	bool showWindow = true;
-	if (!app->m_settingsManager.m_showAllWindows)
-	{
-		showWindow =
-			!window->GetTitle().empty() && // has a title
-			window->GetHandle() != app->m_appWindowHandle; // not the app window
-	}
-
-	if (showWindow)
-	{
-		app->m_windows.push_back(std::move(window));
-	}
-
-	return true; // continue EnumWindows
-}
-
 
 //
 // Operations
@@ -227,10 +186,10 @@ GlobalProfile App::ReadProfile()
 
 void App::ApplyProfile(const GlobalProfile& profile)
 {
-	if (m_selectedIndex >= m_windows.size())
+	if (m_windowList.IsSelectedValid())
 		return;
 
-	SetWindowPos(m_windows[m_selectedIndex]->GetHandle(), NULL,
+	SetWindowPos(m_windowList.GetSelected()->GetHandle(), NULL,
 	             profile.Position.x, profile.Position.y,
 	             profile.Size.x, profile.Size.y,
 	             SWP_NOACTIVATE);
@@ -254,6 +213,7 @@ void App::DoWindowListWindow()
 	// 	ImGui::TableSetColumnIndex(0);
 	//
 	// 	ImGui::BeginChild("windowScroll", ImVec2(0, 0), 0, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+
 	if (ImGui::BeginTable("windowTable", 2,
 	                      ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable))
 	{
@@ -262,7 +222,7 @@ void App::DoWindowListWindow()
 		ImGui::TableHeadersRow();
 
 		u32 index = 0;
-		for (auto& window : m_windows)
+		for (auto& window : m_windowList.GetWindows())
 		{
 			ImGui::TableNextRow();
 			ImGui::TableNextColumn();
@@ -288,11 +248,11 @@ void App::DoWindowListWindow()
 			ImGui::SameLine();
 			if (ImGui::Selectable(
 				"##sel",
-				m_selectedIndex == index,
+				m_windowList.GetSelectedIndex() == index,
 				ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap,
 				ImVec2(0, 16)))
 			{
-				m_selectedIndex = index;
+				m_windowList.SetSelectedIndex(index);
 			}
 
 			if (ImGui::IsItemHovered())
@@ -325,6 +285,7 @@ void App::DoWindowListWindow()
 
 		ImGui::EndTable();
 	}
+
 	// 	ImGui::EndChild();
 	//
 	// 	ImGui::TableSetColumnIndex(1);
@@ -339,14 +300,14 @@ void App::DoInspectorWindow()
 {
 	ImGui::Begin("Inspector");
 
-	if (m_selectedIndex >= m_windows.size())
+	if (!m_windowList.IsSelectedValid())
 	{
 		ImGui::Text("Select a window!");
 		ImGui::End();
 		return;
 	}
 
-	HWND hwnd = m_windows[m_selectedIndex]->GetHandle();
+	HWND hwnd = m_windowList.GetSelected()->GetHandle();
 
 	// POSITION AND SIZE
 	if (!ImGui::IsAnyItemActive())

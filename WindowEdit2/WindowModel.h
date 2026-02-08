@@ -3,11 +3,13 @@
 #include <string>
 #include <memory>
 #include "IconCache.h"
+#include "ProcessHandle.h"
 
 class WindowModel
 {
+	friend class WindowList;
 	HWND m_windowHandle = nullptr;
-	HANDLE m_owningProcessHandle = NULL;
+	ProcessHandle m_owningProcessHandle;
 	u32 m_owningProcessId = 0;
 	u32 m_owningThreadId = 0;
 	std::wstring m_processFileName;
@@ -18,17 +20,22 @@ class WindowModel
 	IconTextureRef m_icon;
 
 public:
-	WindowModel(HWND handle) : m_windowHandle(handle) {}
+	WindowModel(HWND handle);
 	~WindowModel();
 
+	bool IsValid() const { return m_owningProcessHandle.IsValid(); }
 	HWND GetHandle() const { return m_windowHandle; }
+
 	const std::string& GetTitle() const { return m_title; }
 	const std::wstring& GetExecutablePathNameW() const { return m_processFileName; }
 	const std::string& GetExecutablePathName() const { return m_executablePathName; }
 	const std::string& GetExecutableName() const { return m_executableName; }
 	const IconTexture* GetIcon() const { return m_icon.get(); }
 
-	void FetchMetadata(IconCache& iconCache);
+
+
+	void FetchStaticMetadata(IconCache& iconCache);
+	void RefreshTitle();
 
 	static std::wstring GetProcessNameW(HANDLE processHandle);
 

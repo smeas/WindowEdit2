@@ -6,48 +6,62 @@
 
 #define MAX_TITLE_LENGTH 256
 
-WindowModel::~WindowModel()
+WindowModel::WindowModel(HWND handle) : m_windowHandle(handle)
 {
-	if (m_owningProcessHandle != NULL)
-		CloseHandle(m_owningProcessHandle);
+	DWORD processId;
+	m_owningThreadId = GetWindowThreadProcessId(m_windowHandle, &processId);
+	m_owningProcessId = processId;
+
+	if (m_owningProcessId != 0)
+	{
+		// There are some high privilege processes that on which this call will always fail. One example is the system
+		// process csrss.exe (Client Server Runtime Process). This process seems to be responsible for some system
+		// tooltips, like when hovering the minimize/maximize/close buttons on a normal window. Accessing this process
+		// will always fail.
+		m_owningProcessHandle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, false, m_owningProcessId);
+
+		// Handle rare edge case where window and process ids could get are recycled between calls. This ensures that the
+		// process handle we opened really corresponds to the window.
+		if (m_owningProcessHandle.IsValid())
+		{
+			DWORD nextProcessId;
+			DWORD nextThreadId = GetWindowThreadProcessId(handle, &nextProcessId);
+
+			// Process/thread ids changed between calls, possibly due to id recycling.
+			// The window handle is not valid anymore!
+			if (m_owningThreadId != nextThreadId || m_owningProcessId != nextProcessId)
+			{
+				m_owningProcessHandle = NULL;
+			}
+		}
+	}
+
+	// Window handle is not valid, or access is denied.
+	if (!m_owningProcessHandle.IsValid())
+		return;
+
+	m_processFileName = GetProcessNameW(m_owningProcessHandle.Get());
+
+	m_executablePathName = sk::ConvertWStringToUtf8(m_processFileName.c_str());
+	size_t splitIndex = m_executablePathName.find_last_of("\\/");
+	size_t offset = splitIndex != std::wstring::npos ? splitIndex + 1 : 0;
+	m_executableName = m_executablePathName.substr(offset);
 }
 
-void WindowModel::FetchMetadata(IconCache& iconCache)
+WindowModel::~WindowModel()
 {
-	if (m_windowHandle == nullptr)
-	{
-		m_title.clear();
-		return;
-	}
+}
 
-	// TODO: Later, we could check if the handle is stale by checking that the process ids matches.
-	if (m_owningProcessId == 0)
-	{
-		DWORD processId;
-		m_owningThreadId = GetWindowThreadProcessId(m_windowHandle, &processId);
-		m_owningProcessId = processId;
-	}
+void WindowModel::FetchStaticMetadata(IconCache& iconCache)
+{
+	m_icon = iconCache.GetIconForProcessFileName(m_processFileName);
+}
 
-	if (m_owningProcessHandle == NULL)
-	{
-		m_owningProcessHandle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, m_owningProcessId);
-		m_processFileName = GetProcessNameW(m_owningProcessHandle);
-	}
-
-
-	{
-		m_executablePathName = sk::ConvertWStringToUtf8(m_processFileName.c_str());
-		size_t splitIndex = m_executablePathName.find_last_of("\\/");
-		size_t offset = splitIndex != std::wstring::npos ? splitIndex + 1 : 0;
-		m_executableName = m_executablePathName.substr(offset);
-	}
-
-
+void WindowModel::RefreshTitle()
+{
 	wchar_t titleBuffer[MAX_TITLE_LENGTH];
 	GetWindowTextW(m_windowHandle, titleBuffer, _countof(titleBuffer));
 	sk::ConvertWStringToUtf8(titleBuffer, m_title);
-
-	m_icon = iconCache.GetIconForProcessFileName(m_processFileName);
 }
 
 std::wstring WindowModel::GetProcessNameW(HANDLE processHandle)

@@ -194,6 +194,7 @@
     <ClCompile Include="sk\core.cpp" />
     <ClCompile Include="sk\strings.cpp" />
     <ClCompile Include="WindowEdit2.cpp" />
+    <ClCompile Include="WindowList.cpp" />
     <ClCompile Include="WindowModel.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -210,6 +211,7 @@
     <ClInclude Include="common.h" />
     <ClInclude Include="IconCache.h" />
     <ClInclude Include="include\app_imconfig.h" />
+    <ClInclude Include="ProcessHandle.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="SettingsManager.h" />
     <ClInclude Include="sk\core.h" />
@@ -218,6 +220,7 @@
     <ClInclude Include="sk\sk.h" />
     <ClInclude Include="sk\strings.h" />
     <ClInclude Include="sk\win.h" />
+    <ClInclude Include="WindowList.h" />
     <ClInclude Include="WindowModel.h" />
   </ItemGroup>
   <ItemGroup>
