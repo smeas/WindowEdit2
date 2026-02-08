@@ -355,6 +355,11 @@ void App::DoWindowListWindow()
 					ShellOpenFolderAndSelectFile(window->GetExecutablePathNameW().c_str());
 				}
 
+				if (ImGui::MenuItem("Close"))
+				{
+					PostMessage(window->GetHandle(), WM_CLOSE, 0, 0);
+				}
+
 				ImGui::EndPopup();
 			}
 
