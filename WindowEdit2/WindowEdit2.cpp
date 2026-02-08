@@ -12,11 +12,16 @@
 
 #pragma comment(lib, "SDL3.lib")
 
-// TODO: We could go slower if we decouple window message processing from this delay.
-#define THROTTLE_WHILE_INACTIVE_MS 100
+#define MESSAGE_LOOP_THROTTLE_WHILE_INACTIVE_MS 10
+#define RENDER_LOOP_THROTTLE_WHILE_INACTIVE_MS 500
+
 #if _DEBUG
 #define DEBUG_SHOW_FPS 1
 #endif
+
+App g_app;
+SDL_Window* g_window;
+SDL_Renderer* g_renderer;
 
 // Embedded font
 #include "unifont_compressed.h"
@@ -60,9 +65,35 @@ SK_INTERNAL char* ZlibDecompress(const unsigned char* compressedData, u32 compre
 
 SK_INTERNAL char* LoadEmbeddedFont(u32* outFontDataSize)
 {
-	char* data = ZlibDecompress((const unsigned char*)g_unifontTTF_compressed_data, g_unifontTTF_compressed_size, g_unifontTTF_uncompressed_size);
+	char* data = ZlibDecompress((const unsigned char*)g_unifontTTF_compressed_data, g_unifontTTF_compressed_size,
+	                            g_unifontTTF_uncompressed_size);
 	*outFontDataSize = data ? g_unifontTTF_uncompressed_size : 0;
 	return data;
+}
+
+SK_INTERNAL void RenderApp(f64 deltaTime)
+{
+	// Start the Dear ImGui frame
+	ImGui_ImplSDLRenderer3_NewFrame();
+	ImGui_ImplSDL3_NewFrame();
+	ImGui::NewFrame();
+
+#ifdef DEBUG_SHOW_FPS
+	char buffer[255]{};
+	sprintf_s(buffer, "WindowEdit 2.0 %f", deltaTime);
+	SDL_SetWindowTitle(g_window, buffer);
+#endif
+
+	g_app.Render();
+
+	// Rendering
+	ImGui::Render();
+	const auto& io = ImGui::GetIO();
+	SDL_SetRenderScale(g_renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+	SDL_SetRenderDrawColorFloat(g_renderer, 0, 0, 0, 1);
+	SDL_RenderClear(g_renderer);
+	ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), g_renderer);
+	SDL_RenderPresent(g_renderer);
 }
 
 int SDL_main(int argc, char* argv[])
@@ -74,25 +105,25 @@ int SDL_main(int argc, char* argv[])
 	}
 
 	float mainScale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
-	SDL_WindowFlags windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN |
+	SDL_WindowFlags windowFlags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN |
 		SDL_WINDOW_HIGH_PIXEL_DENSITY;
-	SDL_Window* window = SDL_CreateWindow("WindowEdit 2.0", (i32)(800 * mainScale), (i32)(500 * mainScale),
-	                                      windowFlags);
-	if (window == NULL)
+	g_window = SDL_CreateWindow("WindowEdit 2.0", (i32)(800 * mainScale), (i32)(500 * mainScale),
+	                            windowFlags);
+	if (g_window == NULL)
 	{
 		printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
 		return SDL_APP_FAILURE;
 	}
 
-	SDL_Renderer* renderer = SDL_CreateRenderer(window, nullptr);
-	if (!renderer)
+	g_renderer = SDL_CreateRenderer(g_window, nullptr);
+	if (!g_renderer)
 	{
 		printf("Error: SDL_CreateRenderer(): %s\n", SDL_GetError());
 		return SDL_APP_FAILURE;
 	}
 
-	SDL_SetRenderVSync(renderer, 1);
-	SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+	SDL_SetRenderVSync(g_renderer, 1);
+	SDL_SetWindowPosition(g_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
@@ -111,11 +142,12 @@ int SDL_main(int argc, char* argv[])
 	// Bake a fixed style scale. (until we have a solution for dynamic style scaling, changing this requires resetting Style + calling this again)
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.ScaleAllSizes(mainScale);
-	style.FontScaleDpi = mainScale;        // Set initial font scale. (in docking branch: using io.ConfigDpiScaleFonts=true automatically overrides this for every window depending on the current monitor)
+	style.FontScaleDpi = mainScale;
+	// Set initial font scale. (in docking branch: using io.ConfigDpiScaleFonts=true automatically overrides this for every window depending on the current monitor)
 
 	// Setup Platform/Renderer backends
-	ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
-	ImGui_ImplSDLRenderer3_Init(renderer);
+	ImGui_ImplSDL3_InitForSDLRenderer(g_window, g_renderer);
+	ImGui_ImplSDLRenderer3_Init(g_renderer);
 
 	// Load Fonts
 	// - If fonts are not explicitly loaded, Dear ImGui will call AddFontDefault() to select an embedded font: either AddFontDefaultVector() or AddFontDefaultBitmap().
@@ -146,26 +178,32 @@ int SDL_main(int argc, char* argv[])
 
 
 	// Show window after font loading, as that takes a few ms.
-	SDL_ShowWindow(window);
+	SDL_ShowWindow(g_window);
 
 
-	App app;
-	HWND appHwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
+	HWND appHwnd = (HWND)SDL_GetPointerProperty(
+		SDL_GetWindowProperties(g_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER,NULL);
 	SK_VERIFY(appHwnd);
-	app.Init(appHwnd, window, renderer);
-
-	ImVec4 clearColor = {0, 0, 0, 1};
+	g_app.Init(appHwnd, g_window, g_renderer);
 
 	u64 pfcFrequency = SDL_GetPerformanceFrequency();
 	u64 pfcLastTime = SDL_GetPerformanceCounter();
+	u64 pfcLastRenderedFrame = pfcLastTime;
 
 	// sdl main loop
+	bool firstFrame = true;
 	bool quit = false;
 	while (!quit)
 	{
 		u64 pfcCurrentTime = SDL_GetPerformanceCounter();
-		f64 deltaTime = (f64)(pfcCurrentTime - pfcLastTime) / (f64)pfcFrequency;
 		pfcLastTime = pfcCurrentTime;
+
+		SDL_WindowFlags flags = SDL_GetWindowFlags(g_window);
+		bool isWindowActive = flags & (SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS);
+		bool isWindowMinimized = flags & SDL_WINDOW_MINIMIZED;
+
+		bool throttleApp = !firstFrame && (!isWindowActive || isWindowMinimized);
+		bool pauseRendering = isWindowMinimized; // Do not render or update while minimized.
 
 		SDL_Event event;
 		while (SDL_PollEvent(&event))
@@ -173,54 +211,44 @@ int SDL_main(int argc, char* argv[])
 			ImGui_ImplSDL3_ProcessEvent(&event);
 			if (event.type == SDL_EVENT_QUIT)
 				quit = true;
-			if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(window))
+			if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(g_window))
 				quit = true;
 		}
 
-		SDL_WindowFlags flags = SDL_GetWindowFlags(window);
-		bool isWindowActive = flags & (SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS);
-		bool isWindowMinimized = flags & SDL_WINDOW_MINIMIZED;
-		if (!isWindowActive || isWindowMinimized)
+		if (throttleApp)
 		{
-			SDL_Delay(THROTTLE_WHILE_INACTIVE_MS);
+			SDL_Delay(MESSAGE_LOOP_THROTTLE_WHILE_INACTIVE_MS);
 		}
 
-		if (isWindowMinimized)
+		if (pauseRendering)
 		{
-			// Do not render or update while minimized.
 			continue;
 		}
 
-		// Start the Dear ImGui frame
-		ImGui_ImplSDLRenderer3_NewFrame();
-		ImGui_ImplSDL3_NewFrame();
-		ImGui::NewFrame();
+		if (throttleApp)
+		{
+			f64 timeSinceLastFrame = (f64)(pfcCurrentTime - pfcLastRenderedFrame) / (f64)pfcFrequency;
+			if (timeSinceLastFrame * 1'000.0f < RENDER_LOOP_THROTTLE_WHILE_INACTIVE_MS)
+			{
+				continue; // skip rendering
+			}
+		}
 
-#ifdef DEBUG_SHOW_FPS
-		char buffer[255]{};
-		sprintf_s(buffer, "WindowEdit 2.0 %f", deltaTime);
-		SDL_SetWindowTitle(window, buffer);
-#endif
+		f64 deltaTime = (f64)(pfcCurrentTime - pfcLastRenderedFrame) / (f64)pfcFrequency;
+		pfcLastRenderedFrame = pfcCurrentTime;
+		RenderApp(deltaTime);
 
-		app.Render();
-
-		// Rendering
-		ImGui::Render();
-		SDL_SetRenderScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
-		SDL_SetRenderDrawColorFloat(renderer, clearColor.x, clearColor.y, clearColor.z, clearColor.w);
-		SDL_RenderClear(renderer);
-		ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
-		SDL_RenderPresent(renderer);
+		firstFrame = false;
 	}
 
-	app.Shutdown();
+	g_app.Shutdown();
 
 	ImGui_ImplSDLRenderer3_Shutdown();
 	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext();
 
-	SDL_DestroyRenderer(renderer);
-	SDL_DestroyWindow(window);
+	SDL_DestroyRenderer(g_renderer);
+	SDL_DestroyWindow(g_window);
 	SDL_Quit();
 	return SDL_APP_SUCCESS;
 }
