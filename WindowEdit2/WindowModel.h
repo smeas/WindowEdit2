@@ -29,12 +29,16 @@ public:
 
 	bool IsValid() const { return m_owningProcessHandle.IsValid(); }
 	HWND GetHandle() const { return m_windowHandle; }
+	ProcessHandle& GetOwningProcessHandle() { return m_owningProcessHandle; }
 
 	const std::string& GetTitle() const { return m_title; }
 	const std::wstring& GetExecutablePathNameW() const { return m_processFileName; }
 	const std::string& GetExecutablePathName() const { return m_executablePathName; }
 	const std::string& GetExecutableName() const { return m_executableName; }
 	const IconTexture* GetIcon() const { return m_icon.get(); }
+
+	// Checks if the window handle is still valid, and has not been recycled (points to the same window as before).
+	bool VerifyHandle();
 
 	void FetchStaticMetadata(IconCache& iconCache);
 	void RefreshTitle();

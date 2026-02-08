@@ -52,6 +52,15 @@ WindowModel::~WindowModel()
 {
 }
 
+bool WindowModel::VerifyHandle()
+{
+	DWORD processId;
+	DWORD threadId = GetWindowThreadProcessId(m_windowHandle, &processId);
+	return processId == m_owningProcessId &&
+		threadId == m_owningThreadId &&
+		m_owningProcessHandle.IsProcessAlive();
+}
+
 void WindowModel::FetchStaticMetadata(IconCache& iconCache)
 {
 	m_icon = iconCache.GetIconForProcessFileName(m_processFileName);

@@ -3,11 +3,38 @@
 #include "sk/sk.h"
 #include <Windows.h>
 #include <SDL3/SDL_render.h>
+#include <deque>
 
 #include "IconCache.h"
 #include "ProcessHandle.h"
 #include "SettingsManager.h"
 #include "WindowList.h"
+
+enum class HistoryItemType
+{
+	SetPosition,
+	SetSize,
+	SetTopmost,
+	SetMinimized,
+	SetMaximized,
+	SetBorderless,
+};
+
+struct HistoryItem
+{
+	std::shared_ptr<WindowModel> Window;
+	HistoryItemType Type;
+	bool MergeWithPrevious = false;
+	union  // NOLINT(clang-diagnostic-padded)
+	{
+		IntVec2 Position;
+		IntVec2 Size;
+		bool Topmost;
+		bool Minimized;
+		bool Maximized;
+		bool Borderless;
+	};
+};
 
 class App
 {
@@ -23,10 +50,11 @@ class App
 	char m_profileSaveNameEditBuffer[256]{};
 	GlobalProfile m_profileToSave{};
 
-	ProcessHandle m_test;
-	ProcessHandle m_test2;
+	bool m_oldKeyboardState[256]{};
 
 	WindowList m_windowList;
+	static constexpr u32 k_maxUndoCapacity = 64;
+	std::deque<HistoryItem> m_undoBuffer;
 
 public:
 	void Init(HWND ownWindowHandle, SDL_Window* window, SDL_Renderer* renderer);
@@ -57,4 +85,8 @@ private:
 	void DoWindowListWindow();
 	void DoInspectorWindow();
 	void DoProfilesWindow();
+
+	void PushUndo(const HistoryItem& undo);
+	void PerformUndo();
+	void ApplyUndo(const HistoryItem& undo);
 };

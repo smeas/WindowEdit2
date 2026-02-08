@@ -28,6 +28,9 @@ void App::Render()
 {
 	SDL_GetWindowSize(m_appWindow, &m_settingsManager.m_windowSize.x, &m_settingsManager.m_windowSize.y);
 
+	SDL_WindowFlags flags = SDL_GetWindowFlags(m_appWindow);
+	bool isWindowActive = flags & (SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS);
+
 	i32 keyCount;
 	const bool* keyboardState = SDL_GetKeyboardState(&keyCount);
 	bool isHoldingCtrl = SDL_SCANCODE_LCTRL < keyCount && keyboardState[SDL_SCANCODE_LCTRL];
@@ -35,6 +38,13 @@ void App::Render()
 	if (!isHoldingCtrl)
 	{
 		m_windowList.Refresh(m_settingsManager.m_showAllWindows);
+	}
+
+	if (isWindowActive && // just a sanity check, keyboard focus is naturally required for input.
+		isHoldingCtrl &&
+		SDL_SCANCODE_Z < keyCount && keyboardState[SDL_SCANCODE_Z] && !m_oldKeyboardState[SDL_SCANCODE_Z])
+	{
+		PerformUndo();
 	}
 
 	ImGui::DockSpaceOverViewport(ImGui::GetID("fullscreenDockspace"), ImGui::GetMainViewport());
@@ -46,6 +56,8 @@ void App::Render()
 	// ImGui::Begin("Font Debug");
 	// ImGui::ShowFontAtlas(ImGui::GetFont()->OwnerAtlas);
 	// ImGui::End();
+
+	std::memcpy(m_oldKeyboardState, keyboardState, min(_countof(m_oldKeyboardState), keyCount) * sizeof(bool));
 }
 
 //
@@ -146,6 +158,9 @@ bool App::IsBorderless(HWND hwnd)
 
 void App::SetBorderless(WindowModel& window, bool state, bool updateSize)
 {
+	// TODO: Toggling borderless updates the size of some programs incorrectly, eg. Discord.
+	//   this also breaks undo.
+
 	HWND hwnd = window.GetHandle();
 	i32 newStyle = 0;
 	i32 newExStyle = 0;
@@ -262,16 +277,6 @@ void App::DoWindowListWindow()
 		m_settingsManager.Save();
 	}
 
-	// TODO: start out with separate docked windows for simplicity while building the GUI and features, can migrate to a
-	//   table layout later if needed.
-	// if (ImGui::BeginTable("layouttable", 2,
-	//                       ImGuiTableFlags_Resizable))
-	// {
-	// 	ImGui::TableNextRow();
-	// 	ImGui::TableSetColumnIndex(0);
-	//
-	// 	ImGui::BeginChild("windowScroll", ImVec2(0, 0), 0, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-
 	if (ImGui::BeginTable("windowTable", 2,
 	                      ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable))
 	{
@@ -344,13 +349,6 @@ void App::DoWindowListWindow()
 		ImGui::EndTable();
 	}
 
-	// 	ImGui::EndChild();
-	//
-	// 	ImGui::TableSetColumnIndex(1);
-	// 	ImGui::Text("hello");
-	// 	ImGui::EndTable();
-	// }
-
 	ImGui::End();
 }
 
@@ -365,7 +363,7 @@ void App::DoInspectorWindow()
 		return;
 	}
 
-	WindowModel& window = *m_windowList.GetSelected();
+	auto& window = m_windowList.GetSelected();
 	HWND hwnd = m_windowList.GetSelected()->GetHandle();
 
 	// POSITION AND SIZE
@@ -390,8 +388,34 @@ void App::DoInspectorWindow()
 		u32 flags = SWP_NOACTIVATE;
 		flags |= posChanged ? 0 : SWP_NOMOVE;
 		flags |= sizeChanged ? 0 : SWP_NOSIZE;
+
+		Rect oldRect;
+		bool hasOldRect = GetWindowRect(hwnd, &oldRect);
 		SetWindowPos(hwnd, NULL,
 		             m_posEditBuffer[0], m_posEditBuffer[1], m_sizeEditBuffer[0], m_sizeEditBuffer[1], flags);
+
+		// Record undo
+		if (hasOldRect)
+		{
+			bool both = posChanged && sizeChanged;
+			if (posChanged)
+			{
+				PushUndo({
+					.Window = window,
+					.Type = HistoryItemType::SetPosition,
+					.Position = oldRect.GetPos(),
+				});
+			}
+			if (sizeChanged)
+			{
+				PushUndo({
+					.Window = window,
+					.Type = HistoryItemType::SetSize,
+					.MergeWithPrevious = both,
+					.Size = oldRect.GetSize(),
+				});
+			}
+		}
 	}
 
 	// TOPMOST
@@ -401,6 +425,12 @@ void App::DoInspectorWindow()
 	{
 		SetWindowPos(hwnd, isTopMost ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0,
 		             SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
+		PushUndo({
+			.Window = window,
+			.Type = HistoryItemType::SetTopmost,
+			.Topmost = !isTopMost,
+		});
 	}
 
 	// IS MINIMIZED
@@ -412,6 +442,12 @@ void App::DoInspectorWindow()
 	if (ImGui::Checkbox("Is Minimized", &isMinimized) && hasWindowPlacementInfo)
 	{
 		ShowWindow(hwnd, isMinimized ? SW_SHOWMINNOACTIVE : SW_SHOWNOACTIVATE);
+
+		PushUndo({
+			.Window = window,
+			.Type = HistoryItemType::SetMinimized,
+			.Minimized = !isMinimized,
+		});
 	}
 
 	// IS MAXIMIZED
@@ -429,13 +465,25 @@ void App::DoInspectorWindow()
 		{
 			ShowWindow(hwnd, SW_SHOWNOACTIVATE);
 		}
+
+		PushUndo({
+			.Window = window,
+			.Type = HistoryItemType::SetMaximized,
+			.Maximized = !isMaximized,
+		});
 	}
 
 	// IS BORDERLESS
 	bool isBorderless = IsBorderless(hwnd);
 	if (ImGui::Checkbox("Is Borderless", &isBorderless))
 	{
-		SetBorderless(window, isBorderless, true);
+		SetBorderless(*window, isBorderless, true);
+
+		PushUndo({
+			.Window = window,
+			.Type = HistoryItemType::SetBorderless,
+			.Borderless = !isBorderless,
+		});
 	}
 
 
@@ -446,22 +494,89 @@ void App::DoInspectorWindow()
 
 	if (ImGui::Button("Make Borderless Fullscreen"))
 	{
-		SetBorderless(window, true, false);
+		Rect oldRect;
+		bool hasOldRect = GetWindowRect(hwnd, &oldRect);
+
+		SetBorderless(*window, true, false);
 		MakeWindowFullscreen(hwnd);
+
+		PushUndo({
+			.Window = window,
+			.Type = HistoryItemType::SetBorderless,
+			.Borderless = false,
+		});
+
+		if (hasOldRect)
+		{
+			PushUndo({
+				.Window = window,
+				.Type = HistoryItemType::SetPosition,
+				.MergeWithPrevious = true,
+				.Position = oldRect.GetPos(),
+			});
+
+			PushUndo({
+				.Window = window,
+				.Type = HistoryItemType::SetSize,
+				.MergeWithPrevious = true,
+				.Size = oldRect.GetSize(),
+			});
+		}
 	}
 
 	if (ImGui::Button("Bring to Center"))
 	{
-		if (IsIconic(hwnd))
+		bool wasMinimized = IsIconic(hwnd);
+		if (wasMinimized)
 		{
 			ShowWindow(hwnd, SW_RESTORE);
+
+			PushUndo({
+				.Window = window,
+				.Type = HistoryItemType::SetMinimized,
+				.Minimized = true,
+			});
 		}
 
+		Rect oldRect;
+		bool hasOldRect = GetWindowRect(hwnd, &oldRect);
+
 		MoveWindowToCenterOfPrimaryMonitor(hwnd, true);
+
+		if (hasOldRect)
+		{
+			PushUndo({
+				.Window = window,
+				.Type = HistoryItemType::SetPosition,
+				.MergeWithPrevious = wasMinimized,
+				.Position = oldRect.GetPos(),
+			});
+
+			PushUndo({
+				.Window = window,
+				.Type = HistoryItemType::SetSize,
+				.MergeWithPrevious = true,
+				.Size = oldRect.GetSize(),
+			});
+		}
 	}
 
 	if (ImGui::Button("Move Top Left"))
+	{
+		Rect oldRect;
+		bool hasOldRect = GetWindowRect(hwnd, &oldRect);
+
 		MoveWindowTopLeft(hwnd);
+
+		if (hasOldRect)
+		{
+			PushUndo({
+				.Window = window,
+				.Type = HistoryItemType::SetPosition,
+				.Position = oldRect.GetPos(),
+			});
+		}
+	}
 
 	// Not very useful on its own...
 	// if (ImGui::Button("Remove Border"))
@@ -556,4 +671,76 @@ void App::DoProfilesWindow()
 	}
 
 	ImGui::End();
+}
+
+void App::PushUndo(const HistoryItem& undo)
+{
+	// Delete the oldest items to fit capacity.
+	while (m_undoBuffer.size() >= k_maxUndoCapacity)
+	{
+		m_undoBuffer.pop_front();
+	}
+
+	m_undoBuffer.push_back(undo);
+}
+
+void App::PerformUndo()
+{
+	while (!m_undoBuffer.empty())
+	{
+		bool keepGoing = false;
+
+		if (m_undoBuffer.back().Window->VerifyHandle())
+		{
+			ApplyUndo(m_undoBuffer.back());
+			keepGoing |= m_undoBuffer.back().MergeWithPrevious;
+		}
+		else
+		{
+			keepGoing = true;
+		}
+
+		m_undoBuffer.pop_back();
+
+		if (!keepGoing)
+		{
+			break;
+		}
+	}
+}
+
+void App::ApplyUndo(const HistoryItem& undo)
+{
+	HWND hwnd = undo.Window->GetHandle();
+	switch (undo.Type)
+	{
+	case HistoryItemType::SetPosition:
+		SetWindowPos(hwnd, NULL, undo.Position.x, undo.Position.y, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE);
+		break;
+	case HistoryItemType::SetSize:
+		SetWindowPos(hwnd, NULL, 0, 0, undo.Size.x, undo.Size.y, SWP_NOACTIVATE | SWP_NOMOVE);
+		break;
+	case HistoryItemType::SetTopmost:
+		SetWindowPos(hwnd, undo.Topmost ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0,
+		             SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+		break;
+	case HistoryItemType::SetMinimized:
+		ShowWindow(hwnd, undo.Minimized ? SW_SHOWMINNOACTIVE : SW_SHOWNOACTIVATE);
+		break;
+	case HistoryItemType::SetMaximized:
+		if (undo.Maximized)
+		{
+			// Workaround to set maximized without activating the window. (There is no SW_SHOWMXIMIZEDNOACTIVE constant...)
+			// This seems to work in most cases...
+			PostMessage(hwnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+		}
+		else
+		{
+			ShowWindow(hwnd, SW_SHOWNOACTIVATE);
+		}
+		break;
+	case HistoryItemType::SetBorderless:
+		SetBorderless(*undo.Window, undo.Borderless, true);
+		break;
+	}
 }
