@@ -259,13 +259,32 @@ GlobalProfile App::ReadProfile()
 
 void App::ApplyProfile(const GlobalProfile& profile)
 {
-	if (m_windowList.IsSelectedValid())
+	if (!m_windowList.IsSelectedValid())
 		return;
+
+	Rect oldRect;
+	bool hasOldRect = GetWindowRect(m_windowList.GetSelected()->GetHandle(), &oldRect);
 
 	SetWindowPos(m_windowList.GetSelected()->GetHandle(), NULL,
 	             profile.Position.x, profile.Position.y,
 	             profile.Size.x, profile.Size.y,
 	             SWP_NOACTIVATE);
+
+	if (hasOldRect)
+	{
+		PushUndo({
+			.Window = m_windowList.GetSelected(),
+			.Type = HistoryItemType::SetPosition,
+			.Position = oldRect.GetPos(),
+		});
+
+		PushUndo({
+			.Window = m_windowList.GetSelected(),
+			.Type = HistoryItemType::SetSize,
+			.MergeWithPrevious = true,
+			.Size = oldRect.GetSize(),
+		});
+	}
 }
 
 void App::DoWindowListWindow()
@@ -524,6 +543,7 @@ void App::DoInspectorWindow()
 		}
 	}
 
+	// TODO: When doing this on a maximized window, the resulting position is offset.
 	if (ImGui::Button("Bring to Center"))
 	{
 		bool wasMinimized = IsIconic(hwnd);
