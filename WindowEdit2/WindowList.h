@@ -39,7 +39,7 @@ public:
 	}
 
 	// Must call IsSelectedValid first!
-	const std::shared_ptr<WindowModel>& GetSelected() const
+	std::shared_ptr<WindowModel>& GetSelected()
 	{
 		SK_VERIFY(IsSelectedValid());
 		return m_windows[m_selectedIndex];

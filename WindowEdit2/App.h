@@ -40,9 +40,12 @@ public:
 private:
 	static void RemoveWindowBorder(HWND hwnd);
 	static void MoveWindowTopLeft(HWND hwnd);
-	static void MakeWindowBorderlessFullscreen(HWND hwnd);
 	static void ActivateWindow(HWND hwnd);
 	static void MoveWindowToCenterOfPrimaryMonitor(HWND hwnd, bool activate);
+
+	static bool IsBorderless(HWND hwnd);
+	static void SetBorderless(WindowModel& window, bool state, bool updateSize);
+	static void MakeWindowFullscreen(HWND hwnd);
 
 	bool IsValidProfileName(std::string_view name) const;
 

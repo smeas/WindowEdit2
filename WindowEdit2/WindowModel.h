@@ -8,6 +8,7 @@
 class WindowModel
 {
 	friend class WindowList;
+
 	HWND m_windowHandle = nullptr;
 	ProcessHandle m_owningProcessHandle;
 	u32 m_owningProcessId = 0;
@@ -20,6 +21,9 @@ class WindowModel
 	IconTextureRef m_icon;
 
 public:
+	i32 BorderlessRemovedStyleFlags = 0;
+	i32 BorderlessRemovedExStyleFlags = 0;
+
 	WindowModel(HWND handle);
 	~WindowModel();
 
@@ -32,25 +36,8 @@ public:
 	const std::string& GetExecutableName() const { return m_executableName; }
 	const IconTexture* GetIcon() const { return m_icon.get(); }
 
-
-
 	void FetchStaticMetadata(IconCache& iconCache);
 	void RefreshTitle();
 
 	static std::wstring GetProcessNameW(HANDLE processHandle);
-
-private:
-	// TODO: For reference
-	// bool IsOwningProcessStillAlive() const
-	// {
-	// 	if (m_owningProcessHandle == NULL)
-	// 		return false;
-	//
-	// 	DWORD result = WaitForSingleObject(m_owningProcessHandle, 0);
-	// 	// If the process does not exist anymore, the handle will be signaled.
-	// 	if (result == WAIT_OBJECT_0)
-	// 		return false;
-	//
-	// 	return true;
-	// }
 };

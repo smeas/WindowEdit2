@@ -100,37 +100,6 @@ void App::MoveWindowTopLeft(HWND hwnd)
 	             SWP_NOSIZE | SWP_NOACTIVATE);
 }
 
-void App::MakeWindowBorderlessFullscreen(HWND hwnd)
-{
-	HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-
-	RemoveWindowBorder(hwnd);
-
-	// Rect windowRect;
-	// Rect clientRect;
-	MONITORINFO monitorInfo{};
-	monitorInfo.cbSize = sizeof(monitorInfo);
-
-	if ( /*!GetWindowRect(hwnd, &windowRect) ||
-		!GetClientRect(hwnd, &clientRect) ||*/
-		!GetMonitorInfo(monitor, &monitorInfo))
-	{
-		return;
-	}
-
-	Rect monitorRect = (Rect)monitorInfo.rcMonitor;
-
-	// if (windowRect.Width() == monitorRect.Width() &&
-	// 	windowRect.Height() == monitorRect.Height())
-	// {
-	// 	SetWindowPos(hwnd, NULL, 0, 0, windowRect.Width(), windowRect.Height(),
-	// 		SWP_NOMOVE | SWP_NOACTIVATE);
-	// }
-
-	SetWindowPos(hwnd, NULL, monitorRect.X(), monitorRect.Y(), monitorRect.Width(), monitorRect.Height(),
-	             SWP_NOACTIVATE);
-}
-
 void App::ActivateWindow(HWND hwnd)
 {
 	if (IsIconic(hwnd)) // is minimized?
@@ -167,6 +136,95 @@ void App::MoveWindowToCenterOfPrimaryMonitor(HWND hwnd, bool activate)
 		flags |= SWP_NOACTIVATE;
 
 	SetWindowPos(hwnd, NULL, px, py, 0, 0, flags);
+}
+
+bool App::IsBorderless(HWND hwnd)
+{
+	i32 style = GetWindowLong(hwnd, GWL_STYLE);
+	return (style & (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU)) == 0;
+}
+
+void App::SetBorderless(WindowModel& window, bool state, bool updateSize)
+{
+	HWND hwnd = window.GetHandle();
+	i32 newStyle = 0;
+	i32 newExStyle = 0;
+	if (state)
+	{
+		i32 style = GetWindowLong(hwnd, GWL_STYLE);
+		newStyle = style & ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
+		if (style != newStyle)
+		{
+			SetWindowLong(hwnd, GWL_STYLE, newStyle);
+			window.BorderlessRemovedStyleFlags |= style & ~newStyle;
+		}
+
+		i32 exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+		newExStyle = exStyle & ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+		if (exStyle != newExStyle)
+		{
+			SetWindowLong(hwnd, GWL_EXSTYLE, newExStyle);
+			window.BorderlessRemovedExStyleFlags |= exStyle & ~newExStyle;
+		}
+
+		if (updateSize)
+		{
+			Rect clientRect;
+			if (GetClientRect(hwnd, &clientRect))
+			{
+				SetWindowPos(hwnd, NULL, 0, 0, clientRect.Width(), clientRect.Height(), SWP_NOACTIVATE | SWP_NOMOVE);
+			}
+		}
+	}
+	else
+	{
+		Rect clientRect;
+		bool hasClientRect = updateSize && GetClientRect(hwnd, &clientRect);
+
+		// If we have stored the removed styles we can restore them.
+		if (window.BorderlessRemovedStyleFlags != 0 && window.BorderlessRemovedExStyleFlags != 0)
+		{
+			i32 style = GetWindowLong(hwnd, GWL_STYLE);
+			newStyle = style | window.BorderlessRemovedStyleFlags;
+			SetWindowLong(hwnd, GWL_STYLE, newStyle);
+
+			i32 exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+			newExStyle = exStyle | window.BorderlessRemovedExStyleFlags;
+			SetWindowLong(hwnd, GWL_EXSTYLE, newExStyle);
+		}
+		else
+		{
+			// Apply the sensible "default" styles...
+			i32 style = GetWindowLong(hwnd, GWL_STYLE);
+			newStyle = style | (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
+			SetWindowLong(hwnd, GWL_STYLE, newStyle);
+
+			newExStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+			// Set WS_EX_WINDOWEDGE ?
+		}
+
+		if (updateSize && hasClientRect &&
+			// Calculate the new size of the window to preserve the size of the client area.
+			AdjustWindowRectEx(&clientRect, newStyle, GetMenu(hwnd) != NULL, newExStyle))
+		{
+			SetWindowPos(hwnd, NULL, 0, 0, clientRect.Width(), clientRect.Height(), SWP_NOACTIVATE | SWP_NOMOVE);
+		}
+	}
+}
+
+void App::MakeWindowFullscreen(HWND hwnd)
+{
+	HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+	MONITORINFO monitorInfo{};
+	monitorInfo.cbSize = sizeof(monitorInfo);
+	if (!GetMonitorInfo(monitor, &monitorInfo))
+	{
+		return;
+	}
+
+	Rect monitorRect = (Rect)monitorInfo.rcMonitor;
+	SetWindowPos(hwnd, NULL,
+	             monitorRect.X(), monitorRect.Y(), monitorRect.Width(), monitorRect.Height(),SWP_NOACTIVATE);
 }
 
 bool App::IsValidProfileName(std::string_view name) const
@@ -307,6 +365,7 @@ void App::DoInspectorWindow()
 		return;
 	}
 
+	WindowModel& window = *m_windowList.GetSelected();
 	HWND hwnd = m_windowList.GetSelected()->GetHandle();
 
 	// POSITION AND SIZE
@@ -372,10 +431,24 @@ void App::DoInspectorWindow()
 		}
 	}
 
+	// IS BORDERLESS
+	bool isBorderless = IsBorderless(hwnd);
+	if (ImGui::Checkbox("Is Borderless", &isBorderless))
+	{
+		SetBorderless(window, isBorderless, true);
+	}
+
+
 	//
 	// ACTION BUTTONS
 	//
 	ImGui::SeparatorText("Actions");
+
+	if (ImGui::Button("Make Borderless Fullscreen"))
+	{
+		SetBorderless(window, true, false);
+		MakeWindowFullscreen(hwnd);
+	}
 
 	if (ImGui::Button("Bring to Center"))
 	{
@@ -386,9 +459,6 @@ void App::DoInspectorWindow()
 
 		MoveWindowToCenterOfPrimaryMonitor(hwnd, true);
 	}
-
-	if (ImGui::Button("Make Borderless Fullscreen"))
-		MakeWindowBorderlessFullscreen(hwnd);
 
 	if (ImGui::Button("Move Top Left"))
 		MoveWindowTopLeft(hwnd);
