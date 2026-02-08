@@ -671,8 +671,9 @@ void App::DoProfilesWindow()
 		}
 		ImGui::InputText("", m_profileSaveNameEditBuffer, _countof(m_profileSaveNameEditBuffer));
 
-		ImGui::BeginDisabled(!IsValidProfileName({m_profileSaveNameEditBuffer, strlen(m_profileSaveNameEditBuffer)}));
-		if (ImGui::Button("OK") || ImGui::IsKeyPressed(ImGuiKey_Enter))
+		bool canSaveProfile = IsValidProfileName({m_profileSaveNameEditBuffer, strlen(m_profileSaveNameEditBuffer)});
+		ImGui::BeginDisabled(!canSaveProfile);
+		if ((ImGui::Button("OK") || ImGui::IsKeyPressed(ImGuiKey_Enter)) && canSaveProfile)
 		{
 			m_profileToSave.Name = m_profileSaveNameEditBuffer;
 			m_settingsManager.GetProfiles().push_back(m_profileToSave);
