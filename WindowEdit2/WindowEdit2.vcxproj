@@ -154,6 +154,7 @@
     <ClInclude Include="sk\sk.h" />
     <ClInclude Include="sk\strings.h" />
     <ClInclude Include="sk\win.h" />
+    <ClInclude Include="version.h" />
     <ClInclude Include="WindowList.h" />
     <ClInclude Include="WindowModel.h" />
   </ItemGroup>
