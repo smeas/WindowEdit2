@@ -673,7 +673,7 @@ void App::DoProfilesWindow()
 			m_profileSaveNameEditBuffer[0] = '\0'; // set to empty string
 			ImGui::SetKeyboardFocusHere();
 		}
-		ImGui::InputText("", m_profileSaveNameEditBuffer, _countof(m_profileSaveNameEditBuffer));
+		ImGui::InputText("##savename", m_profileSaveNameEditBuffer, _countof(m_profileSaveNameEditBuffer));
 
 		bool canSaveProfile = IsValidProfileName({m_profileSaveNameEditBuffer, strlen(m_profileSaveNameEditBuffer)});
 		ImGui::BeginDisabled(!canSaveProfile);
