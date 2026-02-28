@@ -31,7 +31,7 @@ is stuck off-screen, or positioned in a way where you are not able to drag it ba
 
 ## Libraries used
 - **SDL3** for windowing and as the rendering backend
-- **Dear Imgui** for the GUI
+- **Dear ImGui** for the GUI
 - **Freetype** for nice text rendering
 
 ## Download
