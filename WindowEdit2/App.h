@@ -85,6 +85,7 @@ private:
 	void DoWindowListWindow();
 	void DoInspectorWindow();
 	void DoProfilesWindow();
+	void DoSettingsWindow();
 
 	void PushUndo(const HistoryItem& undo);
 	void PerformUndo();

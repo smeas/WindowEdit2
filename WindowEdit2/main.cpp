@@ -9,7 +9,6 @@
 #include "backends/imgui_impl_sdlrenderer3.h"
 #include "sk/sk.h"
 #include "App.h"
-#include "theme.h"
 
 #define MESSAGE_LOOP_THROTTLE_WHILE_INACTIVE_MS 10
 #define RENDER_LOOP_THROTTLE_WHILE_INACTIVE_MS 500
@@ -144,8 +143,6 @@ int SDL_main(int argc, char* argv[])
 	style.ScaleAllSizes(mainScale);
 	style.FontScaleDpi = mainScale;
 	// Set initial font scale. (in docking branch: using io.ConfigDpiScaleFonts=true automatically overrides this for every window depending on the current monitor)
-
-	Theme_ApplyAppTheme();
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplSDL3_InitForSDLRenderer(g_window, g_renderer);

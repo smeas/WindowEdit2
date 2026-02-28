@@ -17,8 +17,22 @@ class SettingsManager
 	std::vector<GlobalProfile> m_globalProfiles;
 
 public:
-	bool m_showAllWindows;
-	IntVec2 m_windowSize;
+	static constexpr u32 k_defaultThemeColor = 0; // blue
+	static constexpr const char* const k_themeNames[8] = {
+		"Blue",
+		"Red",
+		"Yellow",
+		"Orange",
+		"Lime",
+		"Aqua",
+		"Pink",
+		"Purple",
+	};
+
+	IntVec2 m_windowSize = {};
+	i32 m_themeColor = k_defaultThemeColor;
+	bool m_showAllWindows = false;
+	bool m_themeLight = false;
 
 	SettingsManager() { Reset(); }
 
@@ -27,6 +41,8 @@ public:
 		m_globalProfiles.clear();
 		m_showAllWindows = false;
 		m_windowSize = IntVec2(800, 500);
+		m_themeColor = k_defaultThemeColor;
+		m_themeLight = false;
 	}
 
 	void Init();

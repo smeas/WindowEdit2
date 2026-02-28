@@ -41,6 +41,8 @@ void SettingsManager::Load()
 		data["windowSize"]["x"].get_to(m_windowSize.x);
 		data["windowSize"]["y"].get_to(m_windowSize.y);
 		data["showAllWindows"].get_to(m_showAllWindows);
+		data["themeColor"].get_to(m_themeColor);
+		data["themeLight"].get_to(m_themeLight);
 
 		for (auto& item : data["profiles"])
 		{
@@ -61,6 +63,8 @@ void SettingsManager::Save()
 	data["windowSize"]["x"] = m_windowSize.x;
 	data["windowSize"]["y"] = m_windowSize.y;
 	data["showAllWindows"] = m_showAllWindows;
+	data["themeColor"] = m_themeColor;
+	data["themeLight"] = m_themeLight;
 
 	for (GlobalProfile& profile : m_globalProfiles)
 	{

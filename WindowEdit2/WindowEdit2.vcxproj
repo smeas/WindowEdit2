@@ -166,7 +166,7 @@
     <Image Include="we2_icon.ico" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="compress_font.py" />
+    <Content Include="Tools\compress_font.py" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

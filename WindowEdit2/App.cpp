@@ -4,6 +4,7 @@
 
 #include "common.h"
 #include "WindowModel.h"
+#include "theme.h"
 
 void App::Init(HWND ownWindowHandle, SDL_Window* window, SDL_Renderer* renderer)
 {
@@ -15,6 +16,7 @@ void App::Init(HWND ownWindowHandle, SDL_Window* window, SDL_Renderer* renderer)
 	m_settingsManager.Init();
 	m_settingsManager.Load();
 	SDL_SetWindowSize(window, m_settingsManager.m_windowSize.x, m_settingsManager.m_windowSize.y);
+	Theme_ApplyAppTheme(m_settingsManager.m_themeColor, m_settingsManager.m_themeLight);
 
 	m_windowList.Init(*this);
 }
@@ -51,7 +53,10 @@ void App::Render()
 
 	DoWindowListWindow();
 	DoInspectorWindow();
+	DoSettingsWindow();
 	DoProfilesWindow();
+
+	//Theme_ShowDebugWindow();
 
 	// ImGui::Begin("Font Debug");
 	// ImGui::ShowFontAtlas(ImGui::GetFont()->OwnerAtlas);
@@ -290,11 +295,6 @@ void App::ApplyProfile(const GlobalProfile& profile)
 void App::DoWindowListWindow()
 {
 	ImGui::Begin("Window List");
-
-	if (ImGui::Checkbox("Show All Windows", &m_settingsManager.m_showAllWindows))
-	{
-		m_settingsManager.Save();
-	}
 
 	if (ImGui::BeginTable("windowTable", 2,
 	                      ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable))
@@ -697,6 +697,35 @@ void App::DoProfilesWindow()
 		}
 
 		ImGui::EndPopup();
+	}
+
+	ImGui::End();
+}
+
+void App::DoSettingsWindow()
+{
+	ImGui::Begin("Settings");
+
+	bool needToSave = false;
+
+	needToSave |= ImGui::Checkbox("Show All Windows", &m_settingsManager.m_showAllWindows);
+
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::Spacing();
+
+	bool themeChanged = false;
+	themeChanged |= ImGui::Combo("Theme", &m_settingsManager.m_themeColor, SettingsManager::k_themeNames, _countof(SettingsManager::k_themeNames));
+	themeChanged |= ImGui::Checkbox("Light Theme", &m_settingsManager.m_themeLight);
+	if (themeChanged)
+	{
+		Theme_ApplyAppTheme(m_settingsManager.m_themeColor, m_settingsManager.m_themeLight);
+		needToSave = true;
+	}
+
+	if (needToSave)
+	{
+		m_settingsManager.Save();
 	}
 
 	ImGui::End();
