@@ -513,7 +513,9 @@ void App::DoInspectorWindow()
 	//
 	// ACTION BUTTONS
 	//
+	ImGui::Spacing();
 	ImGui::SeparatorText("Actions");
+	ImGui::Spacing();
 
 	if (ImGui::Button("Make Borderless Fullscreen"))
 	{
@@ -667,6 +669,7 @@ void App::DoProfilesWindow()
 	if (ImGui::BeginPopupModal("Save Profile"))
 	{
 		ImGui::Text("Save profile?");
+		ImGui::Spacing();
 
 		if (ImGui::IsWindowAppearing())
 		{
@@ -674,6 +677,7 @@ void App::DoProfilesWindow()
 			ImGui::SetKeyboardFocusHere();
 		}
 		ImGui::InputText("##savename", m_profileSaveNameEditBuffer, _countof(m_profileSaveNameEditBuffer));
+		ImGui::Spacing();
 
 		bool canSaveProfile = IsValidProfileName({m_profileSaveNameEditBuffer, strlen(m_profileSaveNameEditBuffer)});
 		ImGui::BeginDisabled(!canSaveProfile);
