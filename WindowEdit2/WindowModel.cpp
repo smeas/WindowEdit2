@@ -44,7 +44,7 @@ WindowModel::WindowModel(HWND handle) : m_windowHandle(handle)
 
 	m_executablePathName = sk::ConvertWStringToUtf8(m_processFileName.c_str());
 	size_t splitIndex = m_executablePathName.find_last_of("\\/");
-	size_t offset = splitIndex != std::wstring::npos ? splitIndex + 1 : 0;
+	size_t offset = splitIndex != std::string::npos ? splitIndex + 1 : 0;
 	m_executableName = m_executablePathName.substr(offset);
 }
 
