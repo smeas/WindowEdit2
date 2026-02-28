@@ -200,7 +200,7 @@ IconTextureRef IconCache::GetIconForProcessFileName(const std::wstring& fileName
 		.bmiHeader = {
 			.biSize = sizeof(BITMAPINFO),
 			.biWidth = size,
-			.biHeight = size,
+			.biHeight = -size,  // Negative height for top-down DIB
 			.biPlanes = 1,
 			.biBitCount = 32,
 			.biCompression = BI_RGB,

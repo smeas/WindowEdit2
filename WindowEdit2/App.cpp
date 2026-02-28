@@ -311,8 +311,7 @@ void App::DoWindowListWindow()
 
 			if (const auto icon = window->GetIcon(); icon)
 			{
-				ImGui::Image((ImTextureID)icon->GetTexture(), ImVec2{icon->GetWidth(), icon->GetHeight()},
-				             ImVec2(0, 1), ImVec2(1, 0));
+				ImGui::Image((ImTextureID)icon->GetTexture(), ImVec2{icon->GetWidth(), icon->GetHeight()});
 			}
 
 			ImGui::TableNextColumn();
