@@ -401,9 +401,9 @@ void App::DoInspectorWindow()
 		m_sizeEditBuffer[1] = rect.bottom - rect.top;
 	}
 
-	ImGui::DragInt2("Position", m_posEditBuffer);
+	ImGui::DragInt2("Position", m_posEditBuffer, 0.2f);
 	bool posChanged = ImGui::IsItemDeactivatedAfterEdit();
-	ImGui::DragInt2("Size", m_sizeEditBuffer);
+	ImGui::DragInt2("Size", m_sizeEditBuffer, 0.2f);
 	bool sizeChanged = ImGui::IsItemDeactivatedAfterEdit();
 
 	if (posChanged || sizeChanged)
